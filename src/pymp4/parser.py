@@ -45,7 +45,7 @@ SegmentTypeBox = Struct(
 # Catch find boxes
 
 RawBox = Struct(
-    "type" / PaddedString(4, "ascii"),
+#    "type" / PaddedString(4, "ascii"),
     "data" / Default(GreedyBytes, b"")
 )
 
@@ -642,10 +642,85 @@ WebVTTSourceLabelBox = Struct(
 ContainerBoxLazy = LazyBound(lambda: ContainerBox)
 
 
-Box = Prefixed(Int32ub, Struct(
+class Embedded(Subconstruct):
+    r"""
+    Embeds a struct into the enclosing struct, merging fields. Can also embed sequences into sequences. Name is also inherited.
+
+    :param subcon: the struct to embed
+
+    Example::
+
+        >>> EmbeddableStruct("a"/Byte, Embedded(Struct("b"/Byte)), "c"/Byte).parse(b"abc")
+        Container(a=97)(b=98)(c=99)
+        >>> EmbeddableStruct("a"/Byte, Embedded(Struct("b"/Byte)), "c"/Byte).build(_)
+        b'abc'
+    """
+    def __init__(self, subcon):
+        super().__init__(subcon)
+
+class EmbeddableStruct(Struct):
+    r"""
+    A special Struct that allows embedding of fields with type Embed.
+    """
+
+    def __init__(self, *subcons, **subconskw):
+        super().__init__(*subcons, **subconskw)
+
+    def _parse(self, stream, context, path):
+        r"""
+        This is really copy of :func:`~construct.core.Struct._parse` with
+        check to merage objects if the subconstruct is :cls:`Embedded`
+        """
+        obj = Container()
+        obj._io = stream
+        context = Container(_ = context, _params = context._params, _root = None, _parsing = context._parsing, _building = context._building, _sizing = context._sizing, _subcons = self._subcons, _io = stream, _index = context.get("_index", None), _parent = obj)
+        context._root = context._.get("_root", context)
+        for sc in self.subcons:
+            try:
+                subobj = sc._parsereport(stream, context, path)
+                if sc.name:
+                    obj[sc.name] = subobj
+                    context[sc.name] = subobj
+                if not sc.name and isinstance(sc, Embedded):
+                    obj.update(subobj)
+            except StopFieldError:
+                break
+        return obj
+
+    def _build(self, obj, stream, context, path):
+        r"""
+        This is really copy of :func:`~construct.core.Struct._build` with
+        check to use 'obj' if the subconstruct is :cls:`Embedded`
+        """
+        if obj is None:
+            obj = Container()
+        context = Container(_ = context, _params = context._params, _root = None, _parsing = context._parsing, _building = context._building, _sizing = context._sizing, _subcons = self._subcons, _io = stream, _index = context.get("_index", None))
+        context._root = context._.get("_root", context)
+        context.update(obj)
+        for sc in self.subcons:
+            try:
+                if sc.flagbuildnone:
+                    subobj = obj.get(sc.name, None)
+                elif not sc.name and isinstance(sc, Embedded):
+                    subobj = obj
+                else:
+                    subobj = obj[sc.name] # raises KeyError
+
+                if sc.name:
+                    context[sc.name] = subobj
+
+                buildret = sc._build(subobj, stream, context, path)
+                if sc.name:
+                    context[sc.name] = buildret
+            except StopFieldError:
+                break
+        return context
+
+
+Box = Prefixed(Int32ub, EmbeddableStruct(
     "offset" / Tell,
     "type" / PaddedString(4, "ascii"),
-    "data" / Switch(this.type, {
+    Embedded(Switch(this.type, {
         "ftyp": FileTypeBox,
         "styp": SegmentTypeBox,
         "mvhd": MovieHeaderBox,
@@ -707,8 +782,8 @@ Box = Prefixed(Int32ub, Struct(
         "iden": CueIDBox,
         "sttg": CueSettingsBox,
         "payl": CuePayloadBox
-    }, default=RawBox),
-    "end" / TellPlusSizeOf(Int32ub)
+    }, default=RawBox)),
+    "end" / Tell #TellPlusSizeOf(Int32ub)
 ), includelength=True)
 
 ContainerBox = Struct(
