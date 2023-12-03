@@ -21,7 +21,7 @@ from construct import *
 from construct.lib import *
 
 from pymp4.adapters import ISO6392TLanguageCode, MaskedInteger, UUIDBytes
-from pymp4.subconstructs import EmbeddableStruct, Embedded
+from pymp4.subconstructs import EmbeddableStruct, Embedded, TellMinusSizeOf
 
 log = logging.getLogger(__name__)
 
@@ -643,7 +643,7 @@ ContainerBoxLazy = LazyBound(lambda: ContainerBox)
 
 
 Box = Prefixed(Int32ub, EmbeddableStruct(
-    "offset" / Tell,
+    "offset" / TellMinusSizeOf(Int32ub),
     "type" / PaddedString(4, "ascii"),
     Embedded(Switch(this.type, {
         "ftyp": FileTypeBox,
@@ -708,7 +708,7 @@ Box = Prefixed(Int32ub, EmbeddableStruct(
         "sttg": CueSettingsBox,
         "payl": CuePayloadBox
     }, default=RawBox)),
-    "end" / Tell #TellPlusSizeOf(Int32ub)
+    "end" / Tell
 ), includelength=True)
 
 ContainerBox = Struct(
