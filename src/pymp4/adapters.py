@@ -38,11 +38,11 @@ class UUIDBytes(Adapter, ABC):
         return obj.bytes
 
 
-class IntFromVariableBytes(Adapter, ABC):
-    def __init__(self, subcon=GreedyBytes, signed=True, big_endian=True):
+class VarBytesInteger(Adapter, ABC):
+    def __init__(self, subcon=GreedyBytes, signed=True, swapped=False):
         super().__init__(subcon)
         self.signed = signed
-        self.byteorder = 'big' if big_endian else 'little'
+        self.byteorder = 'little' if swapped else 'big'
 
     def _encode(self, obj, context, path):
         if self.signed:

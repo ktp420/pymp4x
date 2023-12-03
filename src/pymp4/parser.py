@@ -20,7 +20,7 @@ from uuid import UUID
 from construct import *
 from construct.lib import *
 
-from pymp4.adapters import ISO6392TLanguageCode, MaskedInteger, UUIDBytes, IntFromVariableBytes
+from pymp4.adapters import ISO6392TLanguageCode, MaskedInteger, UUIDBytes, VarBytesInteger
 from pymp4.subconstructs import EmbeddableStruct, Embedded, TellMinusSizeOf
 
 log = logging.getLogger(__name__)
@@ -663,11 +663,11 @@ MetadataDataBox = Struct(
             # """A big-endian signed integer in 1,2,3 or 4 bytes.
             #    Note: This data type is not supported in Timed metadata media.
             #    Use one of the fixed-size signed integer data types (that is, type codes 65, 66, or 67) instead."""
-            21: IntFromVariableBytes(signed=True),
+            21: VarBytesInteger(signed=True),
             # """A big-endian unsigned integer in 1,2,3 or 4 bytes; size of value determines integer size.
             #    Note: This data type is not supported in Timed metadata media.
             #    Use one of the fixed-size unsigned integer data types (that is, type codes 75, 76, or 77) instead."""
-            22: IntFromVariableBytes(signed=False),
+            22: VarBytesInteger(signed=False),
             # """A big-endian 32-bit floating point value (IEEE754)"""
             23: Float32b,
             # """A big-endian 64-bit floating point value (IEEE754)"""
