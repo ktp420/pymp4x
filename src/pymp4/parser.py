@@ -20,7 +20,7 @@ from uuid import UUID
 from construct import *
 from construct.lib import *
 
-from pymp4.adapters import ISO6392TLanguageCode, MaskedInteger, UUIDBytes
+from pymp4.adapters import ISO6392TLanguageCode, MaskedInteger, UUIDBytes, VarBytesInteger
 from pymp4.subconstructs import EmbeddableStruct, Embedded, TellMinusSizeOf
 
 log = logging.getLogger(__name__)
@@ -165,8 +165,9 @@ HandlerReferenceBox = Struct(
     "flags" / Const(0, Int24ub),
     Padding(4, pattern=b"\x00"),
     "handler_type" / PaddedString(4, "ascii"),
-    Padding(12, pattern=b"\x00"),  # Int32ub[3]
-    "name" / CString("utf8")
+    "manufacturer" / Default(PaddedString(4, "ascii"), ''),  # used by apple meta
+    Padding(8, pattern=b"\x00"),  # Int32ub[2]
+    "name" / Optional(CString("utf8"))  # shaka-packer does not add null for empty string
 )
 
 # Boxes contained by Media Info Box
@@ -603,7 +604,7 @@ SchemeTypeBox = Struct(
 
 ProtectionSchemeInformationBox = Struct(
     # TODO: define which children are required 'schm', 'schi' and 'tenc'
-    "children" / LazyBound(lambda _: GreedyRange(Box))
+    "children" / LazyBound(lambda: GreedyRange(Box))
 )
 
 # PIFF boxes
@@ -641,8 +642,99 @@ WebVTTSourceLabelBox = Struct(
 
 ContainerBoxLazy = LazyBound(lambda: ContainerBox)
 
+ContainerFullBoxLazy = LazyBound(lambda: ContainerFullBox)
+
+# metadata
+
+MetadataDataBox = Struct(
+    # """https://developer.apple.com/documentation/quicktime-file-format/type_indicator"""
+    # changing this name you have to also change the If in 'data'
+    "version" / Default(Int8ub, 0),
+    # chaning this name you have to also change the Switch in 'data'
+    "flags" / Default(Int24ub, 1),
+    "locale" / Default(Int32ub, 0),
+    "data" / IfThenElse(this.version == 0,
+        # """https://developer.apple.com/documentation/quicktime-file-format/well-known_types"""
+        Switch(this.flags, {
+            # """without any count or null terminator"""
+            1: GreedyString("utf8"),
+            # """also known as UTF-16BE"""
+            2: GreedyString("utf16"),
+            # """A big-endian signed integer in 1,2,3 or 4 bytes.
+            #    Note: This data type is not supported in Timed metadata media.
+            #    Use one of the fixed-size signed integer data types (that is, type codes 65, 66, or 67) instead."""
+            21: VarBytesInteger(signed=True),
+            # """A big-endian unsigned integer in 1,2,3 or 4 bytes; size of value determines integer size.
+            #    Note: This data type is not supported in Timed metadata media.
+            #    Use one of the fixed-size unsigned integer data types (that is, type codes 75, 76, or 77) instead."""
+            22: VarBytesInteger(signed=False),
+            # """A big-endian 32-bit floating point value (IEEE754)"""
+            23: Float32b,
+            # """A big-endian 64-bit floating point value (IEEE754)"""
+            24: Float64b,
+            # """An 8-bit signed integer"""
+            65: Int8sb,
+            # """A big-endian 16-bit signed integer"""
+            66: Int16sb,
+            # """A big-endian 32-bit signed integer"""
+            67: Int32sb,
+            # """A big-endian 64-bit signed integer"""
+            74: Int64sb,
+            # """An 8-bit unsigned integer"""
+            75: Int8ub,
+            # """A big-endian 16-bit unsigned integer"""
+            76: Int16ub,
+            # """A big-endian 32-bit unsigned integer"""
+            77: Int32ub,
+            # """A big-endian 64-bit unsigned integer"""
+            78: Int64ub,
+        }, default=Default(GreedyBytes, b"")),
+        Default(GreedyBytes, b"")
+    )
+)
+
+MetadataNameBox = Struct(
+    "version" / Default(Int8ub, 0),
+    "flags" / Default(Int24ub, 1),
+    "name" / GreedyString('utf8')
+)
+
+MetadataID32 = Struct(
+    "version" / Default(Int8ub, 0),
+    "flags" / Default(Int24ub, 0),
+    "language" / Default(ISO6392TLanguageCode(Int16ub), 'eng'),
+    "data" / Default(GreedyBytes, b"")
+)
+
+MetadataListItem = Struct(
+    "children" / GreedyRange(LazyBound(lambda: MetadataListItemBox))
+)
+
+MetadataListItemBox = Prefixed(Int32ub, EmbeddableStruct(
+    # this does not support the 64-bit length box
+    # to support them you will have to extend the
+    # Prefixed class and handle offset/length/type
+    # since box is like Int32ub(1) Type Int64ub(length)
+    "offset" / TellMinusSizeOf(Int32ub),
+    # have to use bytes here since type can have non-ascii bytes
+    "type" / Bytes(4),
+    Embedded(Switch(this.type, {
+        b"name": MetadataNameBox,
+        b"data": MetadataDataBox,
+        b"itif": RawBox,
+    }, default=MetadataListItem)),
+    "end" / Tell #TellPlusSizeOf(Int32ub)
+), includelength=True)
+
+MetadataList = Struct(
+    "children" / GreedyRange(MetadataListItemBox)
+)
 
 Box = Prefixed(Int32ub, EmbeddableStruct(
+    # this does not support the 64-bit length box
+    # to support them you will have to extend the
+    # Prefixed class and handle offset/length/type
+    # since box is like Int32ub(1) Type Int64ub(length)
     "offset" / TellMinusSizeOf(Int32ub),
     "type" / PaddedString(4, "ascii"),
     Embedded(Switch(this.type, {
@@ -706,12 +798,23 @@ Box = Prefixed(Int32ub, EmbeddableStruct(
         "vttx": ContainerBoxLazy,
         "iden": CueIDBox,
         "sttg": CueSettingsBox,
-        "payl": CuePayloadBox
+        "payl": CuePayloadBox,
+        # metadata
+        "ilst": MetadataList,
+        "ID32": MetadataID32,
+        "udta": ContainerBoxLazy,
+        "meta": ContainerFullBoxLazy,
     }, default=RawBox)),
     "end" / Tell
 ), includelength=True)
 
 ContainerBox = Struct(
+    "children" / GreedyRange(Box)
+)
+
+ContainerFullBox = Struct(
+    "version" / Default(Int8ub, 0),
+    "flags" / Default(Int24ub, 0),
     "children" / GreedyRange(Box)
 )
 
