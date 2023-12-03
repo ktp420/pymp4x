@@ -1,6 +1,6 @@
 from abc import ABC
 
-from construct import Container, Struct, Subconstruct
+from construct import Container, Struct, Subconstruct, StopFieldError
 
 
 class TellPlusSizeOf(Subconstruct, ABC):
@@ -20,7 +20,7 @@ class TellPlusSizeOf(Subconstruct, ABC):
 
 class TellMinusSizeOf(Subconstruct, ABC):
     def __init__(self, subcon):
-        super(TellMinusSizeOf, self).__init__(subcon)
+        super().__init__(subcon)
         self.flagbuildnone = True
 
     def _parse(self, stream, context, path):

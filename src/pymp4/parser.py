@@ -805,7 +805,7 @@ Box = Prefixed(Int32ub, EmbeddableStruct(
         "udta": ContainerBoxLazy,
         "meta": ContainerFullBoxLazy,
     }, default=RawBox)),
-    "end" / Tell #TellPlusSizeOf(Int32ub)
+    "end" / Tell
 ), includelength=True)
 
 ContainerBox = Struct(
