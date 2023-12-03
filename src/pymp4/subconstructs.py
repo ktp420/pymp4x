@@ -58,7 +58,7 @@ class EmbeddableStruct(Struct):
                 if sc.name:
                     obj[sc.name] = subobj
                     context[sc.name] = subobj
-                if subobj and not sc.name and isinstance(sc, Embedded):
+                if subobj and not sc.name and isinstance(sc, Embedded) and isinstance(subobj, (dict, list)):
                     obj.update(subobj)
             except StopFieldError:
                 break
