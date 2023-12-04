@@ -46,13 +46,16 @@ var_big_bytes_to_signed_int_data = [
     (0xffffffffffffffff, b'\x00\xff\xff\xff\xff\xff\xff\xff\xff'),
     (0x10000000000000000, b'\x01\x00\x00\x00\x00\x00\x00\x00\x00')
 ]
+var_little_bytes_to_signed_int_data = [
+    (a, from_big_to_little(expected))
+    for a, expected in var_big_bytes_to_signed_int_data
+]
 
 #- Build tests ---------------------------------------------------------
 
-@pytest.mark.parametrize("a,expected", var_big_bytes_to_signed_int_data)
+@pytest.mark.parametrize("a,expected", var_little_bytes_to_signed_int_data)
 def test_signed_int_from_var_little_endian_bytes(a, expected):
     i = VarBytesInteger(swapped=True).build(a)
-    expected = from_big_to_little(expected)
     assert i == expected
 
 @pytest.mark.parametrize("a,expected", var_big_bytes_to_signed_int_data)
@@ -62,9 +65,8 @@ def test_signed_int_from_var_big_endian_bytes(a, expected):
 
 #- Parse Tests ---------------------------------------------------------
 
-@pytest.mark.parametrize("expected,a", var_big_bytes_to_signed_int_data)
+@pytest.mark.parametrize("expected,a", var_little_bytes_to_signed_int_data)
 def test_signed_int_to_var_little_endian_bytes(a, expected):
-    a = from_big_to_little(a)
     i = VarBytesInteger(signed=True, swapped=True).parse(a)
     assert i == expected
 
@@ -83,13 +85,16 @@ var_big_bytes_to_unsigned_int_data = [
     (0xffffffffffffffff, b'\xff\xff\xff\xff\xff\xff\xff\xff'),
     (0x10000000000000000, b'\x01\x00\x00\x00\x00\x00\x00\x00\x00')
 ]
+var_little_bytes_to_unsigned_int_data = [
+    (a, from_big_to_little(expected))
+    for a, expected in var_big_bytes_to_unsigned_int_data
+]
 
 #- Build tests ---------------------------------------------------------
 
-@pytest.mark.parametrize("a,expected", var_big_bytes_to_unsigned_int_data)
+@pytest.mark.parametrize("a,expected", var_little_bytes_to_unsigned_int_data)
 def test_unsigned_int_from_var_little_endian_bytes(a, expected):
     i = VarBytesInteger(signed=False, swapped=True).build(a)
-    expected = from_big_to_little(expected)
     assert i == expected
 
 @pytest.mark.parametrize("a,expected", var_big_bytes_to_unsigned_int_data)
@@ -99,9 +104,8 @@ def test_unsigned_int_from_var_big_endian_bytes(a, expected):
 
 #- Parse Tests ---------------------------------------------------------
 
-@pytest.mark.parametrize("expected,a", var_big_bytes_to_unsigned_int_data)
+@pytest.mark.parametrize("expected,a", var_little_bytes_to_unsigned_int_data)
 def test_unsigned_int_from_var_little_endian_bytes(a, expected):
-    a = from_big_to_little(a)
     i = VarBytesInteger(signed=False, swapped=True).parse(a)
     assert i == expected
 
