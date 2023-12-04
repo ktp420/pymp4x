@@ -48,7 +48,7 @@ class VarBytesInteger(Adapter, ABC):
         if self.signed:
             l = (8 + (obj + (obj < 0)).bit_length()) // 8
         else:
-            l = (obj.bit_length() + 7) // 8
+            l = max((obj.bit_length() + 7) // 8, 1)
         return obj.to_bytes(length=l, byteorder=self.byteorder, signed=self.signed)
 
     def _decode(self, obj, context, path):
