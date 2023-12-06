@@ -49,6 +49,15 @@ class Embedded(Subconstruct):
     def __init__(self, subcon):
         super().__init__(subcon)
 
+    #def _parse(self, stream, context, path):
+    #    obj = self.subcon._parsereport(stream, context, path)
+    #    if context and context.get('_parent') and isinstance(obj, dict):
+    #        context._parent.update(obj)
+    #    return obj
+
+    #def _build(self, obj, stream, context, path):
+    #    return self.subcon._build(context.get('_parent', obj), stream, context, path)
+
 
 class EmbeddableStruct(Struct):
     r"""
@@ -65,7 +74,7 @@ class EmbeddableStruct(Struct):
         """
         obj = Container()
         obj._io = stream
-        context = Container(_ = context, _params = context._params, _root = None, _parsing = context._parsing, _building = context._building, _sizing = context._sizing, _subcons = self._subcons, _io = stream, _index = context.get("_index", None), _parent = obj)
+        context = Container(_ = context, _params = context._params, _root = None, _parsing = context._parsing, _building = context._building, _sizing = context._sizing, _subcons = self._subcons, _io = stream, _index = context.get("_index", None))
         context._root = context._.get("_root", context)
         for sc in self.subcons:
             try:

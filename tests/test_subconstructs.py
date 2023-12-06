@@ -18,7 +18,7 @@ import logging
 import pytest
 
 from pymp4.subconstructs import EmbeddableStruct, Embedded
-from construct import Byte, Container, Struct, PaddedString, Pass
+from construct import Byte, Container, FixedSized, Struct, PaddedString, Pass
 
 log = logging.getLogger(__name__)
 
@@ -44,3 +44,13 @@ invalid_embedds = [
 def test_ignore_embedding_non_dict(data, expected):
     obj = EmbeddableStruct("a"/Byte, Embedded(data), "c"/Byte).parse(b"abcd")
     assert obj == expected
+
+def test_nonparent_embedded_parse():
+    obj = EmbeddableStruct("a"/Byte, Embedded(FixedSized(2, Struct("b"/Byte))), "c"/Byte).parse(b"abcd")
+    expected = Container(a=97, b=98, c=100)
+    assert obj == expected
+
+def test_nonparent_embedded_build():
+    obj = EmbeddableStruct("a"/Byte, Embedded(FixedSized(2, Struct("b"/Byte))), "c"/Byte).build(
+            Container(a=97, b=98, c=99))
+    assert obj == b'ab\x00c'

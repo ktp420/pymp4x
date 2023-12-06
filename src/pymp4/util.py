@@ -24,6 +24,12 @@ log = logging.getLogger(__name__)
 
 class BoxUtil(object):
     @classmethod
+    def child(cls, box, type_):
+        for sbox in (getattr(box, "children", None) or []):
+            if sbox.type == type_:
+                yield sbox
+
+    @classmethod
     def first(cls, box, type_):
         if box.type == type_:
             return box
