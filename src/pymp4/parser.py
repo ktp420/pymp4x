@@ -184,6 +184,7 @@ VideoMediaHeaderBox = Struct(
 )
 
 DataEntryUrlBox = Prefixed(Int32ub, Struct(
+    "type" / Const('url ', PaddedString(4, "ascii")),
     "version" / Const(0, Int8ub),
     "flags" / BitStruct(
         Padding(23), "self_contained" / Rebuild(Flag, ~this._.location)
@@ -192,6 +193,7 @@ DataEntryUrlBox = Prefixed(Int32ub, Struct(
 ), includelength=True)
 
 DataEntryUrnBox = Prefixed(Int32ub, Struct(
+    "type" / Const('urn ', PaddedString(4, "ascii")),
     "version" / Const(0, Int8ub),
     "flags" / BitStruct(
         Padding(23), "self_contained" / Rebuild(Flag, ~(this._.name & this._.location))
@@ -217,7 +219,8 @@ MP4ASampleEntryBox = Struct(
     "compression_id" / Default(Int16sb, 0),
     "packet_size" / Const(0, Int16ub),
     "sampling_rate" / Int16ub,
-    Padding(2)
+    Padding(2),
+    "children" / LazyBound(lambda: GreedyRange(Box))
 )
 
 AAVC = Struct(
@@ -289,18 +292,18 @@ AVC1SampleEntryBox = Struct(
     "sample_info" / LazyBound(lambda _: GreedyRange(Box))
 )
 
-SampleEntryBox = Prefixed(Int32ub, Struct(
+SampleEntryBox = Prefixed(Int32ub, EmbeddableStruct(
     "format" / PaddedString(4, "ascii"),
     Padding(6, pattern=b"\x00"),
     "data_reference_index" / Default(Int16ub, 1),
-    "data" / Switch(this.format, {
+    Embedded(Switch(this.format, {
         "ec-3": MP4ASampleEntryBox,
         "mp4a": MP4ASampleEntryBox,
         "enca": MP4ASampleEntryBox,
         "avc1": AVC1SampleEntryBox,
         "encv": AVC1SampleEntryBox,
         "wvtt": Struct("children" / LazyBound(lambda: GreedyRange(Box)))
-    }, GreedyBytes)
+    }, GreedyBytes))
 ), includelength=True)
 
 BitRateBox = Struct(
@@ -519,7 +522,7 @@ SampleAuxiliaryInformationOffsetsBox = Struct(
     "aux_info_type" / Default(If(this.flags.has_aux_info_type, Int32ub), None),
     "aux_info_type_parameter" / Default(If(this.flags.has_aux_info_type, Int32ub), None),
     # Short offsets in version 0, long in version 1
-    "offsets" / PrefixedArray(Int32ub, Switch(this.version, {0: Int32ub, 1: Int64ub}))
+    "offsets" / PrefixedArray(Int32ub, Switch(this._.version, {0: Int32ub, 1: Int64ub}))
 )
 
 # Movie data box
@@ -583,7 +586,7 @@ SampleEncryptionBox = Struct(
     "sample_encryption_info" / PrefixedArray(Int32ub, Struct(
         "iv" / Bytes(8),
         # include the sub sample encryption information
-        "subsample_encryption_info" / Default(If(this.flags.has_subsample_encryption_info, PrefixedArray(Int16ub, Struct(
+        "subsample_encryption_info" / Default(If(this._._.flags.has_subsample_encryption_info, PrefixedArray(Int16ub, Struct(
             "clear_bytes" / Int16ub,
             "cipher_bytes" / Int32ub
         ))), None)
