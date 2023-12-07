@@ -35,10 +35,16 @@ class BoxTests(unittest.TestCase):
                 type="c   ",
                 children=ListContainer([
                     Container(type="a   ", id=3),
-                    Container(type="b   ", id=4)
+                    Container(type="b   ", id=4),
                 ])
             ),
-            Container(type="d   ", id=5)
+            Container(type="d   ", id=5),
+            Container(type="zzzz", id=100,
+                children=ListContainer([
+                    Container(type="zzzz", id=101),
+                    Container(type="xyzz", id=102)
+                ])
+            ),
         ])
     )
 
@@ -57,6 +63,24 @@ class BoxTests(unittest.TestCase):
             )
         ])
     )
+
+    def test_child(self):
+        self.assertListEqual(
+            list(BoxUtil.child(self.box_data, "a   ")),
+            [Container(type="a   ", id=1)]
+        )
+
+    def test_child_does_not_find_grand_child(self):
+        self.assertListEqual(
+            list(BoxUtil.child(self.box_data, "xyzz")),
+            []
+        )
+
+    def test_child_missing(self):
+        self.assertListEqual(
+            list(BoxUtil.child(self.box_data, "NOTE")),
+            []
+        )
 
     def test_find(self):
         self.assertListEqual(
