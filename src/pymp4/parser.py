@@ -116,8 +116,8 @@ HDSSegmentBox = Struct(
     "quality_entry_table" / PrefixedArray(Int8ub, CString("ascii")),
     "drm_data" / CString("ascii"),
     "metadata" / CString("ascii"),
-    "segment_run_table" / PrefixedArray(Int8ub, LazyBound(lambda x: Box)),
-    "fragment_run_table" / PrefixedArray(Int8ub, LazyBound(lambda x: Box))
+    "segment_run_table" / PrefixedArray(Int8ub, LazyBound(lambda: Box)),
+    "fragment_run_table" / PrefixedArray(Int8ub, LazyBound(lambda: Box))
 )
 
 HDSSegmentRunBox = Struct(
@@ -232,8 +232,8 @@ AAVC = Struct(
         Padding(6, pattern=b'\x01'),
         "nal_unit_length_field" / Default(BitsInteger(2), 3),
     ),
-    "sps" / Default(PrefixedArray(MaskedInteger(Int8ub), PascalString(Int16ub, "ascii")), []),
-    "pps" / Default(PrefixedArray(Int8ub, PascalString(Int16ub, "ascii")), [])
+    "sps" / Default(PrefixedArray(MaskedInteger(Int8ub), Hex(Prefixed(Int16ub, GreedyBytes))), []),
+    "pps" / Default(PrefixedArray(Int8ub, Hex(Prefixed(Int16ub, GreedyBytes))), [])
 )
 
 HVCC = Struct(
@@ -289,7 +289,7 @@ AVC1SampleEntryBox = Struct(
             "hvcC": HVCC,
         }, GreedyBytes)
     ), includelength=True),
-    "sample_info" / LazyBound(lambda _: GreedyRange(Box))
+    "sample_info" / LazyBound(lambda: GreedyRange(Box))
 )
 
 SampleEntryBox = Prefixed(Int32ub, EmbeddableStruct(
@@ -303,7 +303,7 @@ SampleEntryBox = Prefixed(Int32ub, EmbeddableStruct(
         "avc1": AVC1SampleEntryBox,
         "encv": AVC1SampleEntryBox,
         "wvtt": Struct("children" / LazyBound(lambda: GreedyRange(Box)))
-    }, GreedyBytes))
+    }, RawBox)),
 ), includelength=True)
 
 BitRateBox = Struct(
@@ -333,7 +333,7 @@ SampleSizeBox2 = Struct(
     "field_size" / Int8ub,
     "sample_count" / Int24ub,
     "entries" / Array(this.sample_count, Struct(
-        "entry_size" / LazyBound(lambda ctx: globals()["Int%dub" % ctx.field_size])
+        "entry_size" / LazyBound(lambda: globals()["Int%dub" % this._.field_size])
     ))
 )
 
