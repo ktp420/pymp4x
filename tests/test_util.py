@@ -60,6 +60,18 @@ class BoxTests(unittest.TestCase):
                 type="b   ",
                 id=2,
                 extended_type=b"e--b"
+            ),
+            Container(
+                type="c   ",
+                id=3,
+                extended_type=b"e--c",
+                children=ListContainer([
+                    Container(
+                        type="d   ",
+                        id=4,
+                        extended_type=b"e--d"
+                    )
+                ])
             )
         ])
     )
@@ -123,6 +135,30 @@ class BoxTests(unittest.TestCase):
 
     def test_find_extended(self):
         self.assertListEqual(
+            list(BoxUtil.find_extended(self.box_extended_data, b"e--d")),
+            [Container(type="d   ", id=4, extended_type=b"e--d")]
+        )
+
+    def test_find_extended_child(self):
+        self.assertListEqual(
             list(BoxUtil.find_extended(self.box_extended_data, b"e--a")),
             [Container(type="a   ", id=1, extended_type=b"e--a")]
+        )
+
+    def test_index(self):
+        self.assertEqual(
+            BoxUtil.index(self.box_data, "b   "),
+            1
+        )
+
+    def test_index_not_found(self):
+        self.assertEqual(
+            BoxUtil.index(self.box_data, "NOTE"),
+            None
+        )
+
+    def test_index_no_childrens(self):
+        self.assertEqual(
+            BoxUtil.index(Container(type="NOTE", id=1), "NOTE"),
+            None
         )

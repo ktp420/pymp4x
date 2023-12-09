@@ -18,7 +18,7 @@ import logging
 import pytest
 
 from pymp4.subconstructs import EmbeddableStruct, Embedded
-from construct import Byte, Container, FixedSized, Struct, PaddedString, Pass
+from construct import Byte, Container, Default, FixedSized, Struct, PaddedString, Pass
 
 log = logging.getLogger(__name__)
 
@@ -54,3 +54,7 @@ def test_nonparent_embedded_build():
     obj = EmbeddableStruct("a"/Byte, Embedded(FixedSized(2, Struct("b"/Byte))), "c"/Byte).build(
             Container(a=97, b=98, c=99))
     assert obj == b'ab\x00c'
+
+def test_noobject_embedded_build():
+    obj = EmbeddableStruct("a"/Default(Byte, 0)).build(None)
+    assert obj == b'\x00'

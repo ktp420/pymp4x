@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-import logging
+#import logging
 
-log = logging.getLogger(__name__)
+#log = logging.getLogger(__name__)
 
 
