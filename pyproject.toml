@@ -3,14 +3,14 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "pymp4"
-version = "1.4.0"
+name = "pymp4x"
+version = "2.0.0"
 description = "Python parser for MP4 boxes"
-authors = ["beardypig <git@beardypig.com>"]
+authors = ["ktp420"]
 license = "Apache-2.0"
 readme = "README.md"
-homepage = "https://github.com/beardypig/pymp4"
-repository = "https://github.com/beardypig/pymp4"
+homepage = "https://github.com/ktp420/pymp4x"
+repository = "https://github.com/ktp420/pymp4x"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
