@@ -21,6 +21,7 @@ classifiers = [
     "Topic :: Multimedia :: Video",
     "Topic :: Utilities",
 ]
+packages = [{include = "pymp4", from='..'}]
 
 [tool.poetry.dependencies]
 python = ">=3.7,<4.0"
