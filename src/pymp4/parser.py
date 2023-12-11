@@ -81,6 +81,20 @@ MovieHeaderBox = Struct(
 
 # Track boxes, contained in trak box
 
+EditListBox = Struct(
+    "version" / Default(Int8ub, 0),
+    "flags" / Default(Int24ub, 0),
+    "entries" / PrefixedArray(Int32ub, Struct(
+        "track_duration" / Int32ub,
+        "media_time" / Int32ub,
+        # A 32-bit fixed-point number that specifies the relative rate at which to play the media
+        # corresponding to this edit segment. This rate value cannot be 0 or negative.
+        "media_rate_integer" / Int16ub,
+        "media_rate_fraction" / Default(Int16ub, 0)
+    ))
+)
+
+
 TrackHeaderBox = Struct(
     "version" / Default(Int8ub, 0),
     "flags" / Default(Int24ub, 1),
@@ -267,6 +281,11 @@ HVCC = Struct(
     "raw_bytes" / GreedyBytes
 )
 
+PixelAspectRation = Struct(
+    "hSpacing" / Int32ub,
+    "vSpacing" / Int32ub
+)
+
 AVC1SampleEntryBox = Struct(
     "version" / Default(Int16ub, 0),
     "revision" / Const(0, Int16ub),
@@ -284,12 +303,12 @@ AVC1SampleEntryBox = Struct(
     "compressor_name" / Default(PaddedString(32, "ascii"), None),
     "depth" / Default(Int16ub, 24),
     "color_table_id" / Default(Int16sb, -1),
-    "avc_data" / Prefixed(Int32ub, Struct(
+    "avc_data" / Prefixed(Int32ub, EmbeddableStruct(
         "type" / FourCC,
-        "data" / Switch(this.type, {
+        Embedded(Switch(this.type, {
             b"avcC": AAVC,
             b"hvcC": HVCC,
-        }, GreedyBytes)
+        }, RawBox))
     ), includelength=True),
     "sample_info" / LazyBound(lambda: GreedyRange(Box))
 )
@@ -751,6 +770,8 @@ Box = Prefixed(Int32ub, EmbeddableStruct(
         b"mfhd": MovieFragmentHeaderBox,
         b"tfdt": TrackFragmentBaseMediaDecodeTimeBox,
         b"trun": TrackRunBox,
+        b"edts": ContainerBoxLazy,
+        b"elst": EditListBox,
         b"tfhd": TrackFragmentHeaderBox,
         b"traf": ContainerBoxLazy,
         b"mvex": ContainerBoxLazy,
@@ -781,6 +802,7 @@ Box = Prefixed(Int32ub, EmbeddableStruct(
         b"sidx": SegmentIndexBox,
         b"saiz": SampleAuxiliaryInformationSizesBox,
         b"saio": SampleAuxiliaryInformationOffsetsBox,
+        b"pasp": PixelAspectRation,
         b"btrt": BitRateBox,
         # dash
         b"tenc": TrackEncryptionBox,

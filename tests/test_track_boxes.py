@@ -27,10 +27,9 @@ data=[
         Container(offset=0, type=b'stsd', version=0, flags=0, entries=ListContainer([
             Container(format=b'avc1', data_reference_index=1, version=0, revision=0, vendor=u'', temporal_quality=0, spatial_quality=0, width=640, height=360, horizontal_resolution=72, vertical_resolution=72, data_size=0, frame_count=1, compressor_name=u'', depth=24, color_table_id=-1,
                 avc_data=Container(type=b'avcC',
-                    data=Container(version=1, profile=66, compatibility=224, level=30, flags=Container(nal_unit_length_field=3),
+                    version=1, profile=66, compatibility=224, level=30, flags=Container(nal_unit_length_field=3),
                     sps=ListContainer([unhexlify('2742e01ea9181405ff2e00d418041adb0ad7bdf010')]),
                     pps=ListContainer([unhexlify('28de09c8')])
-                    )
                 ),
             sample_info=ListContainer()),
         ]),
@@ -136,7 +135,19 @@ data=[
             ]),
         end=108)
     ),
-
+    ("pasp", b'\x00\x00\x00\x10\x70\x61\x73\x70\x00\x00\x01\x94\x00\x00\x01\x95',
+        Container(offset=0, type=b'pasp', hSpacing=404, vSpacing=405, end=16)
+    ),
+    ("edts", b'\x00\x00\x00\x24\x65\x64\x74\x73\x00\x00\x00\x1c\x65\x6c\x73\x74\x00\x00\x00\x00\x00\x00\x00\x01\x00\x4f\x1b\x6b\x00\x00\x00\x00\x00\x01\x00\x00',
+        Container(offset=0, type=b'edts', children=ListContainer([
+            Container(offset=8, type=b'elst', version=0, flags=0, entries=ListContainer([
+                Container(track_duration=5184363, media_time=0, media_rate_integer=1, media_rate_fraction=0)
+                ]),
+                end=36)
+            ]),
+            end=36
+        )
+    ),
 ]
 
 
