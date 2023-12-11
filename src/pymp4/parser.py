@@ -722,7 +722,7 @@ MetadataListItemBox = Prefixed(Int32ub, EmbeddableStruct(
     # since box is like Int32ub(1) Type Int64ub(length)
     "offset" / TellMinusSizeOf(Int32ub),
     # have to use bytes here since type can have non-ascii bytes
-    "type" / Bytes(4),
+    "type" / FourCC,
     Embedded(Switch(this.type, {
         b"name": MetadataNameBox,
         b"data": MetadataDataBox,
