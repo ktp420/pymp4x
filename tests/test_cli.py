@@ -16,5 +16,5 @@ def test_dump(capsys):
     cli.dump(args=[test_file])
     captured = capsys.readouterr()
     assert "" == captured.err
-    assert "major_brand = u'M4A ' " in captured.out
+    assert "major_brand = b'M4A ' " in captured.out
     assert captured.out.rstrip().endswith('end = 36')

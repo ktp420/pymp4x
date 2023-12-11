@@ -29,10 +29,10 @@ class BoxTests(unittest.TestCase):
             Box.parse(b'\x00\x00\x00\x18ftypiso5\x00\x00\x00\x01iso5avc1'),
             Container(
                 offset=0,
-                type="ftyp",
-                major_brand="iso5",
+                type=b"ftyp",
+                major_brand=b"iso5",
                 minor_version=1,
-                compatible_brands=["iso5", "avc1"],
+                compatible_brands=[b"iso5", b"avc1"],
                 end=24
             )
         )
@@ -40,10 +40,10 @@ class BoxTests(unittest.TestCase):
     def test_ftyp_build(self):
         self.assertEqual(
             Box.build(dict(
-                type="ftyp",
-                major_brand="iso5",
+                type=b"ftyp",
+                major_brand=b"iso5",
                 minor_version=1,
-                compatible_brands=["iso5", "avc1"]
+                compatible_brands=[b"iso5", b"avc1"]
             )),
             b'\x00\x00\x00\x18ftypiso5\x00\x00\x00\x01iso5avc1')
 
@@ -52,7 +52,7 @@ class BoxTests(unittest.TestCase):
             Box.parse(b'\x00\x00\x00\x20mdhd\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0fB@\x00\x00\x00\x00U\xc4\x00\x00'),
             Container(
                 offset=0,
-                type="mdhd",
+                type=b"mdhd",
                 version=0,
                 flags=0,
                 creation_time=0,
@@ -66,7 +66,7 @@ class BoxTests(unittest.TestCase):
 
     def test_mdhd_build(self):
         mdhd_data = Box.build(dict(
-            type="mdhd",
+            type=b"mdhd",
             creation_time=0,
             modification_time=0,
             timescale=1000000,
@@ -78,7 +78,7 @@ class BoxTests(unittest.TestCase):
                          b'\x00\x00\x00\x20mdhd\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0fB@\x00\x00\x00\x00U\xc4\x00\x00')
 
         mdhd_data64 = Box.build(dict(
-            type="mdhd",
+            type=b"mdhd",
             version=1,
             creation_time=0,
             modification_time=0,
@@ -92,11 +92,11 @@ class BoxTests(unittest.TestCase):
 
     def test_moov_build(self):
         moov = \
-            Container(type="moov", children=ListContainer([  # 96 bytes
-                Container(type="mvex", children=ListContainer([  # 88 bytes
-                    Container(type="mehd", version=0, flags=0, fragment_duration=0),  # 16 bytes
-                    Container(type="trex", track_ID=1),  # 32 bytes
-                    Container(type="trex", track_ID=2),  # 32 bytes
+            Container(type=b"moov", children=ListContainer([  # 96 bytes
+                Container(type=b"mvex", children=ListContainer([  # 88 bytes
+                    Container(type=b"mehd", version=0, flags=0, fragment_duration=0),  # 16 bytes
+                    Container(type=b"trex", track_ID=1),  # 32 bytes
+                    Container(type=b"trex", track_ID=2),  # 32 bytes
                 ]))
             ]))
 
@@ -118,7 +118,7 @@ class BoxTests(unittest.TestCase):
             Box.parse(in_bytes + b'padding'),
             Container(
                 offset=0,
-                type="smhd",
+                type=b"smhd",
                 version=0,
                 flags=0,
                 balance=0,
@@ -129,7 +129,7 @@ class BoxTests(unittest.TestCase):
 
     def test_smhd_build(self):
         smhd_data = Box.build(dict(
-            type="smhd",
+            type=b"smhd",
             data=dict(
                 balance=0
             )))
@@ -143,12 +143,12 @@ class BoxTests(unittest.TestCase):
             Box.parse(in_bytes + b'padding'),
             Container(
                 offset=0,
-                type="stsd",
+                type=b"stsd",
                 version=0,
                 flags=0,
                 entries=ListContainer([
                     Container(
-                        format="tx3g",
+                        format=b"tx3g",
                         data_reference_index=1,
                         data=tx3g_data
                     )
