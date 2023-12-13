@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "pymp4x"
-version = "2.0.0"
+version = "2.1.0"
 description = "Python parser for MP4 boxes"
 authors = ["ktp420"]
 license = "Apache-2.0"
