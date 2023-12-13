@@ -26,9 +26,7 @@ jobs:
         poetry-version: 1.7.1
     - name: Install project
       run: poetry install
-    - name: Run tests
-      run: poetry run pytest tests/
-    - name: Run coverage
+    - name: Run tests and coverage
       run: |
         poetry run coverage run -m pytest tests/
         poetry run coverage xml
