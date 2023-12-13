@@ -28,18 +28,20 @@ log = logging.getLogger(__name__)
 UNITY_MATRIX = [0x10000, 0, 0, 0, 0x10000, 0, 0, 0, 0x40000000]
 
 
+FourCC = Bytes(4) # PaddedString(4, "ascii")
+
 # Header box
 
 FileTypeBox = Struct(
-    "major_brand" / PaddedString(4, "ascii"),
+    "major_brand" / FourCC,
     "minor_version" / Int32ub,
-    "compatible_brands" / GreedyRange(PaddedString(4, "ascii")),
+    "compatible_brands" / GreedyRange(FourCC),
 )
 
 SegmentTypeBox = Struct(
-    "major_brand" / PaddedString(4, "ascii"),
+    "major_brand" / FourCC,
     "minor_version" / Int32ub,
-    "compatible_brands" / GreedyRange(PaddedString(4, "ascii")),
+    "compatible_brands" / GreedyRange(FourCC),
 )
 
 # Catch find boxes
@@ -78,6 +80,20 @@ MovieHeaderBox = Struct(
 )
 
 # Track boxes, contained in trak box
+
+EditListBox = Struct(
+    "version" / Default(Int8ub, 0),
+    "flags" / Default(Int24ub, 0),
+    "entries" / PrefixedArray(Int32ub, Struct(
+        "track_duration" / Int32ub,
+        "media_time" / Int32ub,
+        # A 32-bit fixed-point number that specifies the relative rate at which to play the media
+        # corresponding to this edit segment. This rate value cannot be 0 or negative.
+        "media_rate_integer" / Int16ub,
+        "media_rate_fraction" / Default(Int16ub, 0)
+    ))
+)
+
 
 TrackHeaderBox = Struct(
     "version" / Default(Int8ub, 0),
@@ -164,8 +180,8 @@ HandlerReferenceBox = Struct(
     "version" / Const(0, Int8ub),
     "flags" / Const(0, Int24ub),
     Padding(4, pattern=b"\x00"),
-    "handler_type" / PaddedString(4, "ascii"),
-    "manufacturer" / Default(PaddedString(4, "ascii"), ''),  # used by apple meta
+    "handler_type" / FourCC,
+    "manufacturer" / Default(FourCC, b'\x00\x00\x00\x00'),  # used by apple meta
     Padding(8, pattern=b"\x00"),  # Int32ub[2]
     "name" / Optional(CString("utf8"))  # shaka-packer does not add null for empty string
 )
@@ -184,7 +200,7 @@ VideoMediaHeaderBox = Struct(
 )
 
 DataEntryUrlBox = Prefixed(Int32ub, Struct(
-    "type" / Const('url ', PaddedString(4, "ascii")),
+    "type" / Const(b'url '),
     "version" / Const(0, Int8ub),
     "flags" / BitStruct(
         Padding(23), "self_contained" / Rebuild(Flag, ~this._.location)
@@ -193,7 +209,7 @@ DataEntryUrlBox = Prefixed(Int32ub, Struct(
 ), includelength=True)
 
 DataEntryUrnBox = Prefixed(Int32ub, Struct(
-    "type" / Const('urn ', PaddedString(4, "ascii")),
+    "type" / Const(b'urn '),
     "version" / Const(0, Int8ub),
     "flags" / BitStruct(
         Padding(23), "self_contained" / Rebuild(Flag, ~(this._.name & this._.location))
@@ -265,6 +281,11 @@ HVCC = Struct(
     "raw_bytes" / GreedyBytes
 )
 
+PixelAspectRation = Struct(
+    "hSpacing" / Int32ub,
+    "vSpacing" / Int32ub
+)
+
 AVC1SampleEntryBox = Struct(
     "version" / Default(Int16ub, 0),
     "revision" / Const(0, Int16ub),
@@ -282,27 +303,27 @@ AVC1SampleEntryBox = Struct(
     "compressor_name" / Default(PaddedString(32, "ascii"), None),
     "depth" / Default(Int16ub, 24),
     "color_table_id" / Default(Int16sb, -1),
-    "avc_data" / Prefixed(Int32ub, Struct(
-        "type" / PaddedString(4, "ascii"),
-        "data" / Switch(this.type, {
-            "avcC": AAVC,
-            "hvcC": HVCC,
-        }, GreedyBytes)
+    "avc_data" / Prefixed(Int32ub, EmbeddableStruct(
+        "type" / FourCC,
+        Embedded(Switch(this.type, {
+            b"avcC": AAVC,
+            b"hvcC": HVCC,
+        }, RawBox))
     ), includelength=True),
     "sample_info" / LazyBound(lambda: GreedyRange(Box))
 )
 
 SampleEntryBox = Prefixed(Int32ub, EmbeddableStruct(
-    "format" / PaddedString(4, "ascii"),
+    "format" / FourCC,
     Padding(6, pattern=b"\x00"),
     "data_reference_index" / Default(Int16ub, 1),
     Embedded(Switch(this.format, {
-        "ec-3": MP4ASampleEntryBox,
-        "mp4a": MP4ASampleEntryBox,
-        "enca": MP4ASampleEntryBox,
-        "avc1": AVC1SampleEntryBox,
-        "encv": AVC1SampleEntryBox,
-        "wvtt": Struct("children" / LazyBound(lambda: GreedyRange(Box)))
+        b"ec-3": MP4ASampleEntryBox,
+        b"mp4a": MP4ASampleEntryBox,
+        b"enca": MP4ASampleEntryBox,
+        b"avc1": AVC1SampleEntryBox,
+        b"encv": AVC1SampleEntryBox,
+        b"wvtt": Struct("children" / LazyBound(lambda: GreedyRange(Box)))
     }, RawBox)),
 ), includelength=True)
 
@@ -594,13 +615,13 @@ SampleEncryptionBox = Struct(
 )
 
 OriginalFormatBox = Struct(
-    "original_format" / Default(PaddedString(4, "ascii"), "avc1")
+    "original_format" / Default(FourCC, b"avc1")
 )
 
 SchemeTypeBox = Struct(
     "version" / Default(Int8ub, 0),
     "flags" / Default(Int24ub, 0),
-    "scheme_type" / Default(PaddedString(4, "ascii"), "cenc"),
+    "scheme_type" / Default(FourCC, b"cenc"),
     "scheme_version" / Default(Int32ub, 0x00010000),
     "schema_uri" / Default(If(this.flags & 1 == 1, CString("ascii")), None)
 )
@@ -720,7 +741,7 @@ MetadataListItemBox = Prefixed(Int32ub, EmbeddableStruct(
     # since box is like Int32ub(1) Type Int64ub(length)
     "offset" / TellMinusSizeOf(Int32ub),
     # have to use bytes here since type can have non-ascii bytes
-    "type" / Bytes(4),
+    "type" / FourCC,
     Embedded(Switch(this.type, {
         b"name": MetadataNameBox,
         b"data": MetadataDataBox,
@@ -739,74 +760,77 @@ Box = Prefixed(Int32ub, EmbeddableStruct(
     # Prefixed class and handle offset/length/type
     # since box is like Int32ub(1) Type Int64ub(length)
     "offset" / TellMinusSizeOf(Int32ub),
-    "type" / PaddedString(4, "ascii"),
+    "type" / FourCC,
     Embedded(Switch(this.type, {
-        "ftyp": FileTypeBox,
-        "styp": SegmentTypeBox,
-        "mvhd": MovieHeaderBox,
-        "moov": ContainerBoxLazy,
-        "moof": ContainerBoxLazy,
-        "mfhd": MovieFragmentHeaderBox,
-        "tfdt": TrackFragmentBaseMediaDecodeTimeBox,
-        "trun": TrackRunBox,
-        "tfhd": TrackFragmentHeaderBox,
-        "traf": ContainerBoxLazy,
-        "mvex": ContainerBoxLazy,
-        "mehd": MovieExtendsHeaderBox,
-        "trex": TrackExtendsBox,
-        "trak": ContainerBoxLazy,
-        "mdia": ContainerBoxLazy,
-        "tkhd": TrackHeaderBox,
-        "mdat": MovieDataBox,
-        "free": FreeBox,
-        "skip": SkipBox,
-        "mdhd": MediaHeaderBox,
-        "hdlr": HandlerReferenceBox,
-        "minf": ContainerBoxLazy,
-        "vmhd": VideoMediaHeaderBox,
-        "dinf": ContainerBoxLazy,
-        "dref": DataReferenceBox,
-        "stbl": ContainerBoxLazy,
-        "stsd": SampleDescriptionBox,
-        "stsz": SampleSizeBox,
-        "stz2": SampleSizeBox2,
-        "stts": TimeToSampleBox,
-        "stss": SyncSampleBox,
-        "stsc": SampleToChunkBox,
-        "stco": ChunkOffsetBox,
-        "co64": ChunkLargeOffsetBox,
-        "smhd": SoundMediaHeaderBox,
-        "sidx": SegmentIndexBox,
-        "saiz": SampleAuxiliaryInformationSizesBox,
-        "saio": SampleAuxiliaryInformationOffsetsBox,
-        "btrt": BitRateBox,
+        b"ftyp": FileTypeBox,
+        b"styp": SegmentTypeBox,
+        b"mvhd": MovieHeaderBox,
+        b"moov": ContainerBoxLazy,
+        b"moof": ContainerBoxLazy,
+        b"mfhd": MovieFragmentHeaderBox,
+        b"tfdt": TrackFragmentBaseMediaDecodeTimeBox,
+        b"trun": TrackRunBox,
+        b"edts": ContainerBoxLazy,
+        b"elst": EditListBox,
+        b"tfhd": TrackFragmentHeaderBox,
+        b"traf": ContainerBoxLazy,
+        b"mvex": ContainerBoxLazy,
+        b"mehd": MovieExtendsHeaderBox,
+        b"trex": TrackExtendsBox,
+        b"trak": ContainerBoxLazy,
+        b"mdia": ContainerBoxLazy,
+        b"tkhd": TrackHeaderBox,
+        b"mdat": MovieDataBox,
+        b"free": FreeBox,
+        b"skip": SkipBox,
+        b"mdhd": MediaHeaderBox,
+        b"hdlr": HandlerReferenceBox,
+        b"minf": ContainerBoxLazy,
+        b"vmhd": VideoMediaHeaderBox,
+        b"dinf": ContainerBoxLazy,
+        b"dref": DataReferenceBox,
+        b"stbl": ContainerBoxLazy,
+        b"stsd": SampleDescriptionBox,
+        b"stsz": SampleSizeBox,
+        b"stz2": SampleSizeBox2,
+        b"stts": TimeToSampleBox,
+        b"stss": SyncSampleBox,
+        b"stsc": SampleToChunkBox,
+        b"stco": ChunkOffsetBox,
+        b"co64": ChunkLargeOffsetBox,
+        b"smhd": SoundMediaHeaderBox,
+        b"sidx": SegmentIndexBox,
+        b"saiz": SampleAuxiliaryInformationSizesBox,
+        b"saio": SampleAuxiliaryInformationOffsetsBox,
+        b"pasp": PixelAspectRation,
+        b"btrt": BitRateBox,
         # dash
-        "tenc": TrackEncryptionBox,
-        "pssh": ProtectionSystemHeaderBox,
-        "senc": SampleEncryptionBox,
-        "sinf": ProtectionSchemeInformationBox,
-        "frma": OriginalFormatBox,
-        "schm": SchemeTypeBox,
-        "schi": ContainerBoxLazy,
+        b"tenc": TrackEncryptionBox,
+        b"pssh": ProtectionSystemHeaderBox,
+        b"senc": SampleEncryptionBox,
+        b"sinf": ProtectionSchemeInformationBox,
+        b"frma": OriginalFormatBox,
+        b"schm": SchemeTypeBox,
+        b"schi": ContainerBoxLazy,
         # piff
-        "uuid": UUIDBox,
+        b"uuid": UUIDBox,
         # HDS boxes
-        "abst": HDSSegmentBox,
-        "asrt": HDSSegmentRunBox,
-        "afrt": HDSFragmentRunBox,
+        b"abst": HDSSegmentBox,
+        b"asrt": HDSSegmentRunBox,
+        b"afrt": HDSFragmentRunBox,
         # WebVTT
-        "vttC": WebVTTConfigurationBox,
-        "vlab": WebVTTSourceLabelBox,
-        "vttc": ContainerBoxLazy,
-        "vttx": ContainerBoxLazy,
-        "iden": CueIDBox,
-        "sttg": CueSettingsBox,
-        "payl": CuePayloadBox,
+        b"vttC": WebVTTConfigurationBox,
+        b"vlab": WebVTTSourceLabelBox,
+        b"vttc": ContainerBoxLazy,
+        b"vttx": ContainerBoxLazy,
+        b"iden": CueIDBox,
+        b"sttg": CueSettingsBox,
+        b"payl": CuePayloadBox,
         # metadata
-        "ilst": MetadataList,
-        "ID32": MetadataID32,
-        "udta": ContainerBoxLazy,
-        "meta": ContainerFullBoxLazy,
+        b"ilst": MetadataList,
+        b"ID32": MetadataID32,
+        b"udta": ContainerBoxLazy,
+        b"meta": ContainerFullBoxLazy,
     }, default=RawBox)),
     "end" / Tell
 ), includelength=True)

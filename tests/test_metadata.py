@@ -30,11 +30,11 @@ class MetadataTests(unittest.TestCase):
             Box.parse(b'\x00\x00\x00\x14udta\x00\x00\x00\x0cmeta\x00\x00\x00\x00'),
             Container(
                 offset=0,
-                type=u'udta',
+                type=b'udta',
                 children=ListContainer([
                     Container(
                         offset=8,
-                        type=u'meta',
+                        type=b'meta',
                         version=0,
                         flags=0,
                         children=ListContainer(),
@@ -47,11 +47,11 @@ class MetadataTests(unittest.TestCase):
         self.assertEqual(
             Box.build(Container(
                 offset=0,
-                type=u'udta',
+                type=b'udta',
                 children=ListContainer([
                     Container(
                         offset=8,
-                        type=u'meta',
+                        type=b'meta',
                         version=0,
                         flags=0,
                         children=ListContainer(),
@@ -66,11 +66,11 @@ class MetadataTests(unittest.TestCase):
             Box.parse(b'\x00\x00\x00!hdlr\x00\x00\x00\x00\x00\x00\x00\x00mdirappl\x00\x00\x00\x00\x00\x00\x00\x00\x00'),
             Container(
                 offset=0,
-                type=u'hdlr',
+                type=b'hdlr',
                 version=0,
                 flags=0,
-                handler_type=u'mdir',
-                manufacturer=u'appl',
+                handler_type=b'mdir',
+                manufacturer=b'appl',
                 name=u'',
                 end=33)
             )
@@ -79,11 +79,11 @@ class MetadataTests(unittest.TestCase):
         self.assertEqual(
             Box.build(Container(
                 offset=0,
-                type=u'hdlr',
+                type=b'hdlr',
                 version=0,
                 flags=0,
-                handler_type=u'mdir',
-                manufacturer=u'appl',
+                handler_type=b'mdir',
+                manufacturer=b'appl',
                 name=u'',
                 end=33)
             ),
@@ -94,7 +94,7 @@ class MetadataTests(unittest.TestCase):
             Box.parse(b'\x00\x00\x00(ilst\x00\x00\x00 \xa9nam\x00\x00\x00\x18data\x00\x00\x00\x01\x00\x00\x00\x00my title'),
             Container(
                 offset=0,
-                type=u'ilst',
+                type=b'ilst',
                 children=ListContainer([
                     Container(
                         offset=8,
@@ -118,7 +118,7 @@ class MetadataTests(unittest.TestCase):
         self.assertEqual(
             Box.build(Container(
                 offset=0,
-                type=u'ilst',
+                type=b'ilst',
                 children=ListContainer([
                     Container(
                         offset=8,
@@ -144,15 +144,16 @@ class MetadataTests(unittest.TestCase):
             Box.parse(b'\x00\x00\x00\x1ddata\x00\x00\x00\x01\x00\x00\x00\x00Lavf58.76.100'),
             Container(
                  offset=0,
-                 type='data',
+                 type=b'data',
                  data=b'\x00\x00\x00\x01\x00\x00\x00\x00Lavf58.76.100',
                  end=29)
             )
 
     def test_non_ascii_parse(self):
-        with pytest.raises(StringError) as exc_info:
-            Box.parse(b'\x00\x00\x00%\xa9too\x00\x00\x00\x1ddata\x00\x00\x00\x01\x00\x00\x00\x00Lavf58.76.100')
-        self.assertEqual(str(exc_info.value), "cannot use encoding 'ascii' to decode b'\\xa9too'")
+        self.assertEqual(
+            Box.parse(b'\x00\x00\x00%\xa9to \x00\x00\x00\x1ddata\x00\x00\x00\x01\x00\x00\x00\x00Lavf58.76.100'),
+            Container(offset=0, type=b'\xa9to ', data=b'\x00\x00\x00\x1ddata\x00\x00\x00\x01\x00\x00\x00\x00Lavf58.76.100', end=37)
+        )
 
     def test_metadata_list_item_parse(self):
         self.assertEqual(
@@ -197,26 +198,26 @@ class MetadataTests(unittest.TestCase):
             Box.parse(b'\x00\x00\x00\x82udta\x00\x00\x00zmeta\x00\x00\x00\x00\x00\x00\x00!hdlr\x00\x00\x00\x00\x00\x00\x00\x00mdirappl\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00Milst\x00\x00\x00 \xa9nam\x00\x00\x00\x18data\x00\x00\x00\x01\x00\x00\x00\x00my title\x00\x00\x00%\xa9too\x00\x00\x00\x1ddata\x00\x00\x00\x01\x00\x00\x00\x00Lavf58.76.100'),
             Container(
                 offset=0,
-                type=u'udta',
+                type=b'udta',
                 children=ListContainer([
                     Container(
                         offset=8,
-                        type=u'meta',
+                        type=b'meta',
                         version=0,
                         flags=0,
                         children=ListContainer([
                             Container(
                                 offset=20,
-                                type=u'hdlr',
+                                type=b'hdlr',
                                 version=0,
                                 flags=0,
-                                handler_type=u'mdir',
-                                manufacturer=u'appl',
+                                handler_type=b'mdir',
+                                manufacturer=b'appl',
                                 name=u'',
                                 end=53),
                             Container(
                                 offset=53,
-                                type=u'ilst',
+                                type=b'ilst',
                                 children=ListContainer([
                                     Container(
                                         offset=61,
@@ -259,26 +260,26 @@ class MetadataTests(unittest.TestCase):
         self.assertEqual(
             Box.build(Container(
                 offset=0,
-                type=u'udta',
+                type=b'udta',
                 children=ListContainer([
                     Container(
                         offset=8,
-                        type=u'meta',
+                        type=b'meta',
                         version=0,
                         flags=0,
                         children=ListContainer([
                             Container(
                                 offset=20,
-                                type=u'hdlr',
+                                type=b'hdlr',
                                 version=0,
                                 flags=0,
-                                handler_type=u'mdir',
-                                manufacturer=u'appl',
+                                handler_type=b'mdir',
+                                manufacturer=b'appl',
                                 name=u'',
                                 end=53),
                             Container(
                                 offset=53,
-                                type=u'ilst',
+                                type=b'ilst',
                                 children=ListContainer([
                                     Container(
                                         offset=61,
