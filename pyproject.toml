@@ -24,7 +24,7 @@ classifiers = [
 packages = [{include = "pymp4", from='src'}]
 
 [tool.poetry.dependencies]
-python = ">=3.7,<4.0"
+python = ">=3.8,<4.0"
 construct = "2.10.70"
 
 [tool.poetry.group.dev.dependencies]
