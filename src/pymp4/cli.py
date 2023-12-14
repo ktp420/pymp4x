@@ -3,10 +3,9 @@ from __future__ import print_function
 import io
 import logging
 import argparse
-import codecs
 
 from pymp4.parser import Box
-from pymp4.util import BoxUtil
+from pymp4.util import BoxUtil, escape_decode
 from construct import setGlobalPrintFullStrings
 
 log = logging.getLogger(__name__)
@@ -23,20 +22,14 @@ def dump(args=None):
 
     setGlobalPrintFullStrings(args.full)
 
-    boxes_to_dump = {codecs.escape_decode(b)[0] for b in args.box or [] if b}
+    boxes_to_dump = {escape_decode(b) for b in args.box or [] if b}
 
     fd = args.input_file
     fd.seek(0, io.SEEK_END)
     eof = fd.tell()
     fd.seek(0)
 
-    def dump_box(box):
-        for t in boxes_to_dump:
-            for b in BoxUtil.find(box, t):
-                print(b)
-
-    print_fn = dump_box if boxes_to_dump else print
-
     while fd.tell() < eof:
         box = Box.parse_stream(fd)
-        print_fn(box)
+        for b in BoxUtil.search(box, *boxes_to_dump, decode=False):
+            print(b)

@@ -76,6 +76,114 @@ class BoxTests(unittest.TestCase):
         ])
     )
 
+    box_search_data = Container(
+        type=b"demo",
+        children=ListContainer([
+            Container(type=b"a   ", id=1),
+            Container(type=b"b   ", id=2),
+            Container(
+                type=b"c   ",
+                children=ListContainer([
+                    Container(type="a   ", id=3),
+                    Container(type=b"b   ", id=4),
+                    Container(type=b"\xa9too", id=99),
+                    Container(type=b"c   ", id=98),
+                ])
+            ),
+            Container(type=b"d   ", id=5),
+            Container(type="zzzz", id=100,
+                entries=ListContainer([
+                    Container(type=b"zzzz", id=101),
+                    Container(type="xyzz", id=102)
+                ])
+            ),
+        ])
+    )
+
+    def test_search_convert_to_bytes_false(self):
+        actual = list(BoxUtil.search(self.box_data, "a   ", decode=False))
+        expect = [Container(type="a   ", id=1), Container(type="a   ", id=3)]
+        assert actual == expect
+
+    def test_search_not_found(self):
+        # convert_to_bytes true so "a   " converts to b"a   "
+        actual = list(BoxUtil.search(self.box_data, "a   "))
+        expect = []
+        assert actual == expect
+
+    def test_search(self):
+        # convert_to_bytes true so "a   " converts to b"a   "
+        actual = list(BoxUtil.search(self.box_search_data, "a   "))
+        expect = [Container(type=b"a   ", id=1)]
+        assert actual == expect
+
+    def test_search_converts_bytes2bytes(self):
+        # convert_to_bytes true so b"\xa9too" converts to b"\xa9to"
+        actual = list(BoxUtil.search(self.box_search_data, b"\xa9too"))
+        expect = [Container(type=b"\xa9too", id=99)]
+        assert actual == expect
+
+    def test_search_converts_str2bytes(self):
+        # convert_to_bytes true so "\\xa9too" converts to b"\xa9too"
+        actual = list(BoxUtil.search(self.box_search_data, "\\xa9too"))
+        expect = [Container(type=b"\xa9too", id=99)]
+        assert actual == expect
+
+    def test_search_converts_utf8_str2bytes(self):
+        # convert_to_bytes true so "\xa9too" converts to b"\xc2\xa9too"
+        actual = list(BoxUtil.search(self.box_search_data, "\xa9too"))
+        expect = []
+        assert actual == expect
+
+    def test_search_includes_childrens(self):
+        # convert_to_bytes true so "b   " converts to b"b   "
+        actual = list(BoxUtil.search(self.box_search_data, "b   ", decode=True))
+        expect = [Container(type=b"b   ", id=2), Container(type=b"b   ", id=4)]
+        assert actual == expect
+
+    def test_search_includes_childrens_of_matched(self):
+        # convert_to_bytes true so "c   " converts to b"c   "
+        actual = list(BoxUtil.search(self.box_search_data, "c   ", decode=True))
+        expect = [self.box_search_data.children[2], Container(type=b"c   ", id=98)]
+        assert actual == expect
+
+    def test_search_key_is_id(self):
+        actual = list(BoxUtil.search(self.box_search_data, 2, 3, key='id', decode=False))
+        expect = [Container(type=b"b   ", id=2), Container(type="a   ", id=3)]
+        assert actual == expect
+
+    def test_search_children_key_is_entries(self):
+        actual = list(BoxUtil.search(self.box_search_data.children[-1], 'zzzz', children='entries'))
+        expect = [Container(type=b"zzzz", id=101)]
+        assert actual == expect
+
+    def test_search_key_does_not_exist(self):
+        # convert_to_bytes true so "a   " converts to b"a   "
+        actual = list(BoxUtil.search(self.box_search_data, "a   ", key='NOTE'))
+        expect = []
+        assert actual == expect
+
+    def test_search_childen_key_does_not_exist_in_root_box(self):
+        # convert_to_bytes true so "a   " converts to b"a   "
+        actual = list(BoxUtil.search(self.box_search_data, "a   ", children='entries'))
+        expect = []
+        assert actual == expect
+
+    def test_search_empty_key_returns_self(self):
+        actual = list(BoxUtil.search(self.box_search_data.children[0]))
+        expect = [self.box_search_data.children[0]]
+        assert actual == expect
+
+    def test_search_none_key_returns_self(self):
+        actual = list(BoxUtil.search(self.box_search_data.children[0], None))
+        expect = [self.box_search_data.children[0]]
+        assert actual == expect
+
+    def test_search_empty_str_key_returns_self(self):
+        actual = list(BoxUtil.search(self.box_search_data.children[0], ""))
+        expect = [self.box_search_data.children[0]]
+        assert actual == expect
+
     def test_child(self):
         self.assertListEqual(
             list(BoxUtil.child(self.box_data, "a   ")),
