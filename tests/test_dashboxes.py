@@ -52,3 +52,31 @@ class BoxTests(unittest.TestCase):
                 is_encrypted=1
             )),
             b'\x00\x00\x00 tenc\x00\x00\x00\x00\x00\x00\x01\x083{\x96C!\xb6CU\x9eY>\xcc\xb4l~\xf7')
+
+    def test_pssh_parse(self):
+        actual = Box.parse(b'\x00\x00\x00[pssh\x00\x00\x00\x00\xed\xef\x8b\xa9y\xd6J\xce\xa3\xc8\'\xdc\xd5\x1d!\xed\x00\x00\x00;\x08\x01\x12\x10\xebgj\xbb\xcb4^\x96\xbb\xcfaf0\xf1\xa3\xda\x1a\rwidevine_test"\x10fkj3ljaSdfalkr3j*\x02HD2\x00')
+        expected = Container(
+                offset=0,
+                type=b'pssh',
+                version=0,
+                flags=0,
+                system_ID=UUID('edef8ba9-79d6-4ace-a3c8-27dcd51d21ed'),
+                key_IDs=None,
+                init_data=b'\x08\x01\x12\x10\xebgj\xbb\xcb4^\x96\xbb\xcfaf0\xf1\xa3\xda\x1a\rwidevine_test"\x10fkj3ljaSdfalkr3j*\x02HD2\x00',
+                end=91
+            )
+        assert actual == expected
+
+    def test_pssh_build(self):
+        expected = (b'\x00\x00\x00[pssh\x00\x00\x00\x00\xed\xef\x8b\xa9y\xd6J\xce\xa3\xc8\'\xdc\xd5\x1d!\xed\x00\x00\x00;\x08\x01\x12\x10\xebgj\xbb\xcb4^\x96\xbb\xcfaf0\xf1\xa3\xda\x1a\rwidevine_test"\x10fkj3ljaSdfalkr3j*\x02HD2\x00')
+        actual = Box.build(Container(
+                offset=0,
+                type=b'pssh',
+                version=0,
+                flags=0,
+                system_ID=UUID('edef8ba9-79d6-4ace-a3c8-27dcd51d21ed'),
+                key_IDs=None,
+                init_data=b'\x08\x01\x12\x10\xebgj\xbb\xcb4^\x96\xbb\xcfaf0\xf1\xa3\xda\x1a\rwidevine_test"\x10fkj3ljaSdfalkr3j*\x02HD2\x00',
+                end=91
+            ))
+        assert actual == expected

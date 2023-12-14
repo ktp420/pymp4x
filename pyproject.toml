@@ -24,13 +24,13 @@ classifiers = [
 packages = [{include = "pymp4", from='src'}]
 
 [tool.poetry.dependencies]
-python = ">=3.7,<4.0"
+python = ">=3.8,<4.0"
 construct = "2.10.70"
 
 [tool.poetry.group.dev.dependencies]
 coverage = { version="^7.2.3", extras=["toml"] }
-pytest = "^7.2.2"
-pytest-cov = "^4.0.0"
+pytest = "^7.4.3"
+pytest-cov = "^4.1.0"
 
 [tool.poetry.scripts]
 mp4dump = "pymp4.cli:dump"
