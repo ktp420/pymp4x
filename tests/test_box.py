@@ -15,15 +15,23 @@
    limitations under the License.
 """
 import logging
+import pytest
 import unittest
 
-from construct import Container, ListContainer
+from construct import Container, ListContainer, StreamError
 from pymp4.parser import Box
 
 log = logging.getLogger(__name__)
 
 
 class BoxTests(unittest.TestCase):
+    def test_build_non_fourcc_type(self):
+        with pytest.raises(StreamError) as err_info:
+            Box.build(Container(
+                type=b"MP4",
+            ))
+        assert 'bytes object of wrong length, expected 4, found 3' in err_info.value.args[0]
+
     def test_ftyp_parse(self):
         self.assertEqual(
             Box.parse(b'\x00\x00\x00\x18ftypiso5\x00\x00\x00\x01iso5avc1'),

@@ -15,11 +15,16 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+import codecs
 import logging
 
 from pymp4.exceptions import BoxNotFound
 
 log = logging.getLogger(__name__)
+
+
+def escape_decode(s):
+    return codecs.escape_decode(s)[0]
 
 
 class BoxUtil(object):
@@ -58,6 +63,21 @@ class BoxUtil(object):
             for sbox in box.children:
                 for fbox in cls.find(sbox, type_):
                     yield fbox
+
+    @classmethod
+    def search(cls, box, *types, decode=True, key='type', children='children'):
+        if decode:
+            types = {escape_decode(t) for t in types if t}
+        if not types:
+            yield box
+        else:
+            if getattr(box, key, None) in types:
+                yield box
+            for sbox in (getattr(box, children, None) or []):
+                for fbox in cls.search(sbox, *types, decode=False,
+                        key=key, children=children):
+                    yield fbox
+
 
     @classmethod
     def find_extended(cls, box, extended_type_):
